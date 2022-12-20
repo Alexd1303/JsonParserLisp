@@ -1,22 +1,3 @@
-(defparameter test "{
-    \"type\": \"menu\",
-    \"value\": \"File\",
-    \"items\": [
-     {\"PID\" : 1000},
-     {\"value\": \"New\", \"action\": \"CreateNewDoc\"},
-     {\"value\": \"Open\", \"action\": \"OpenDoc\"},
-     {\"value\": \"Close\", \"action\": \"CloseDoc\"}
-     ]
-    }")
-
-(defparameter simple "{\"nome\" : \"Arthur\", \"cognome\" : \"Dent\"}")
-
-(defparameter nested "{
-    \"nested\" : {\"prova\" : 1}
-    }")
-
-;(defparameter access (jsonaccess (jsonread "./test2.json")))
-
 (defun jsonread (filename)
     (let    ((in (open filename)))
             (parse (clearlist (filetolist in)))))
@@ -142,9 +123,6 @@
             (cond   ((null line) line)
                     (T (append line (filetolist fd))))))
 
-(defun clear-screen ()
-    (screen:clear-window (screen:make-window)))
-
 (defun jsonaccess (object keys)
     (cond   ((null keys) object)
             ((stringp (car keys))
@@ -166,3 +144,48 @@
             ((null array) (error "Indice fuori dai limiti"))
             ((equal index 0) (car array))
             (T (arrayaccess (cdr array) (- index 1)))))
+
+(defun jsondump (JSON filename)
+    (let    ((out (open filename :direction :output :if-exists :overwrite :if-does-not-exist :create)))
+            (format out (jsonreverse JSON))
+            (close out)))
+
+(defun jsonreverse (object)
+    (cond   ((equal (car object) 'jsonobj)
+                (listtostr (flatten (objectreverse (cdr object) nil))))
+            ((equal (car object) 'jsonarray)
+                (listtostr (flatten (arrayreverse (cdr object) nil))))
+            (T (error "L'argomento non è un oggetto"))))
+
+(defun objectreverse (object buffer)
+    (cond   ((null buffer)
+                (objectreverse object (append buffer '(#\{))))
+            ((null object)
+                (append (but-last buffer) '(#\})))
+            (T (objectreverse (cdr object) (append buffer (pairreverse (car object)))))))
+
+(defun arrayreverse (object buffer)
+    (cond   ((null buffer)
+                (arrayreverse object (append buffer '(#\[))))
+            ((null object)
+                (append (but-last buffer) '(#\])))
+            (T (arrayreverse (cdr object) (append buffer (valuesreverse (car object)))))))
+
+(defun pairreverse (pair)
+    (list (write-to-string (car pair)) #\: (valuereverse (cadr pair)) #\,))
+
+(defun valuesreverse (value)
+    (list (valuereverse value) #\,))
+
+(defun valuereverse (value)
+    (cond   ((stringp value) (write-to-string value))
+            ((numberp value) (write-to-string value))
+            ((equal (car value) 'jsonobj)
+                (objectreverse (cdr value) nil))
+            ((equal (car value) 'jsonarray)
+                (arrayreverse (cdr value) nil))))
+
+(defun flatten (l) ;change
+    (if     (atom l)
+            (list l)
+            (append (flatten (car l)) (if (cdr l) (flatten (cdr l))))))
