@@ -199,7 +199,8 @@
             ((equal (car value) 'jsonarray)
                 (arrayreverse (cdr value) nil))))
 
-(defun flatten (l) ;change
-    (if     (atom l)
-            (list l)
-            (append (flatten (car l)) (if (cdr l) (flatten (cdr l))))))
+(defun flatten (x)
+    (cond   ((null x) x)
+            ((atom x) (list x))
+            (T (append (flatten (first x))
+            (flatten (rest x))))))
