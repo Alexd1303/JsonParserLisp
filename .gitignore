@@ -2,3 +2,4 @@
 /*.json
 /*.64yfasl
 /parse-float.lisp
+.DS_Store
