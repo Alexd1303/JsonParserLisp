@@ -1,3 +1,5 @@
+(load "./parse-float.lisp") ;DA RIMUOVERE: sostituzione della parse-float di lispworks che per motivi ignoti è assente nella mia versione di clisp
+
 (defun jsonread (filename)
     (let    ((in (open filename)))
             (parse (clearlist (filetolist in)))))
@@ -16,7 +18,7 @@
 
 (defun clearlist (charlist)
     (remove-if 'is-whitespace 
-        (parsenumbers (parsestrings charlist nil 0) nil 0)))
+        (parsenumbers (parsestrings charlist nil 0) nil 0 0)))
 
 (defun strtolist (str)
     (if (equal str "")
@@ -32,6 +34,8 @@
     (cond   ((null charlist) nil)
             ((equal (car charlist) #\")
                 (parsestrings (cdr charlist) buffer (+ cnt 1)))
+            ((equal (car charlist) #\\)
+                (parsestrings (cddr charlist) (append buffer (list (cadr charlist))) cnt))
             ((= cnt 0)
                 (cons (car charlist) (parsestrings (cdr charlist) buffer cnt)))
             ((= cnt 1)
@@ -39,15 +43,25 @@
             ((= cnt 2)
                 (cons (listtostr buffer) (parsestrings charlist nil 0)))))
 
-(defun parsenumbers (charlist buffer flag)
+(defun parsenumbers (charlist buffer flag float)
     (cond   ((null charlist) 
                 (cond   ((not (null buffer)) (cons (parse-integer (listtostr buffer)) nil))
                         (T nil)))
+            ((and (null buffer) (equal (car charlist) #\-))
+                (parsenumbers (cdr charlist) (append buffer (list (car charlist))) 1 float))
+            ((and (= flag 1) (equal (car charlist) #\-))
+                (error "Errore di sintassi"))
+            ((and (equal (car charlist) #\.) (= flag 1) (= float 0))
+                (parsenumbers (cdr charlist) (append buffer (list (car charlist))) flag 1))
+            ((equal (car charlist) #\.)
+                (error "Errore di sintassi"))
             ((is-number (car charlist))
-                (cond   ((= flag 1) (parsenumbers (cdr charlist) (append buffer (list (car charlist))) 1))
-                        (T (parsenumbers (cdr charlist) (append buffer (list (car charlist))) 1))))
-            (T (cond    ((= flag 1) (cons (parse-integer (listtostr buffer)) (parsenumbers charlist nil 0)))
-                        (T (cons (car charlist) (parsenumbers (cdr charlist) buffer 0)))))))
+                (parsenumbers (cdr charlist) (append buffer (list (car charlist))) 1 float))
+            (T (cond    ((and (= flag 1) (= float 0)) 
+                            (cons (parse-integer (listtostr buffer)) (parsenumbers charlist nil 0 0)))
+                        ((= flag 1)
+                            (cons (parse-float (listtostr buffer)) (parsenumbers charlist nil 0 0)))
+                        (T (cons (car charlist) (parsenumbers (cdr charlist) buffer 0 0)))))))
 
 (defun parsemembers (source buffer open close)
     (cond   ((and (null source) (null buffer)) nil)
@@ -146,7 +160,7 @@
             (T (arrayaccess (cdr array) (- index 1)))))
 
 (defun jsondump (JSON filename)
-    (let    ((out (open filename :direction :output :if-exists :overwrite :if-does-not-exist :create)))
+    (let    ((out (open filename :direction :output :if-exists :rename-and-delete :if-does-not-exist :create)))
             (format out (jsonreverse JSON))
             (close out)))
 
