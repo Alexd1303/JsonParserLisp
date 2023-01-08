@@ -267,7 +267,8 @@
 ;;l'oggetto in stringa chiamando la jsonreverse e lo scrive sul file
 (defun jsondump (JSON filename)
   (let    ((out (open filename :direction :output 
-                      :if-exists :rename-and-delete :if-does-not-exist :create)))
+                      :if-exists :rename-and-delete
+                      :if-does-not-exist :create)))
     (format out (jsonreverse JSON))
     (close out)))
 
