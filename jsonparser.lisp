@@ -1,3 +1,7 @@
+;;Dubini Alessandro 885957
+;;Foggetti Mattia 885958
+;;Elia Leonardo Martin 886366
+
 ;;jsonread
 ;;apre un file e chiama la funzione parse sulla lista
 ;;di caratteri che rappresenta il contenuto del file
